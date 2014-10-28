@@ -1,0 +1,59 @@
+---
+title: "Simulation of Exponential RVs to Illustrate the CLT"
+author: "David Schonberger"
+date: "Sunday, August 24, 2014"
+output: pdf_document
+---
+
+\textbf{Simulation of Exponential RV's:}
+
+```{r}
+set.seed(1)
+sims <- 10000 #trials
+n <- 40 #samples per trial
+lambda <- 0.2
+data <- matrix(rexp(sims * n, lambda), sims)
+sample_means <- apply(data, 1, mean)
+true_mean <- 1/lambda
+estimated_mean <- mean(sample_means)
+true_sd <- 1/(lambda * sqrt(n))
+estimated_sd <- sd(sample_means)
+```
+
+True and estimated means, followed by true and estimated variances, of the sampling distribution:
+```{r, echo=FALSE}
+true_mean
+estimated_mean
+true_sd^2
+estimated_sd^2
+```
+
+A density plot showing the distribution of `r format(sims, scientific = F)` sample means, the true and estimated mean, and the normal distribution our sampling distribution approaches according to the CLT, namely N(`r true_mean`, `r true_mean^2/n`):
+
+```{r, echo=FALSE,fig.width = 7, fig.height = 4}
+hist(sample_means, freq = F, col = colors()[82], breaks = 30, xlab = "sample means", main = "Estimated Sampling Distribution of Sample Means\n10K Simulations of 40 Exp(0.2) rv's")
+abline(v = true_mean, col = "blue", lwd = 2)
+abline(v = estimated_mean, col = "green", lwd = 2)
+str1 <- paste(c("Mean of sample means:\n", as.character(round(estimated_mean,2)), "(rounded to .01)"), collapse = " ")
+legend(6,.5, bty = "n", lty = "solid", col = c("blue", "green", "red"), legend = c("True mean: 5", str1, "N(5, .625)" ))
+xvals <- seq(true_mean - 3.5 * true_sd , true_mean + 3.5 * true_sd , length = 250)
+yvals <- dnorm(xvals, mean = true_mean, sd = true_sd)
+lines(xvals, yvals, lwd = 2, col = "red")
+```
+
+\textbf{Confidence interval coverage:}
+
+We have `r format(sims, scientific = F)` sample means, so we may calculate `r format(sims, scientific = F)` 95% confidence intervals, $\bar{x} \pm 1.96\,\frac{s}{\sqrt{n}}$.
+
+```{r}
+sample_sds <- apply(data, 1, sd)
+CIs_sample_means <- 
+  matrix(c(sample_means - qnorm(.975) * sample_sds / sqrt(n), 
+           sample_means + qnorm(.975) * sample_sds / sqrt(n)), nrow = sims) 
+res <- apply(CIs_sample_means, 1, function(x) 5 >= x[1] & 5 <= x[2] )
+p <- length(res[res == T])/sims * 100 #percent coverage for all trials
+p
+```
+
+Thus with this simulation of `r format(sims, scientific = F)` trials, about
+`r p`% of the confidence intervals actually contain the true mean $\frac{1}{\lambda} = `r true_mean`$ 
